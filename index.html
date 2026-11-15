@@ -423,7 +423,7 @@ function settings(){
  <div style="display:flex;gap:.5em"><button data-x="wake" style="flex:1">${Wake.ok()?"Écran allumé : ON":"Garder l'écran allumé"}</button><button data-x="fs" style="flex:1">Plein écran</button></div>
  <div><label>Guidage (virages) – source : ${S.route?S.route.src:"aucune"}</label><button data-x="loc" style="width:100%;margin-bottom:.4em">📍 Localiser les arrêts par leur nom (Internet)</button><div class="mut" id="lcs" style="margin-bottom:.4em"></div><button data-x="osrm" style="width:100%">Calculer l'itinéraire en ligne (trajet en cours)</button><div class="mut" id="osr" style="margin-top:.3em"></div></div>
  <div style="display:flex;gap:.5em"><button data-x="tiles" style="flex:1">${S.tiles?"🗺️ Fond de carte : ON":"🗺️ Fond de carte : OFF"}</button></div>
- <details><summary class="mut">Source du fond de carte</summary><input id="tu" value="${H(S.tileUrl)}"><div class="mut">Adresse de tuiles {z}/{x}/{y}. OpenStreetMap par défaut (usage modéré).</div></details>
+ <details><summary class="mut">Source du fond de carte</summary><input id="tu" value="${H(S.tileUrl)}"><div class="mut">Adresse de tuiles {z}/{x}/{y}. OpenStreetMap par défaut (usage modéré), sans clé.</div></details>
  ${Object.keys(S.skip).length?`<button data-x="skipclr">🚧 Réactiver les ${Object.keys(S.skip).length} arrêt(s) non desservi(s)</button>`:""}
  ${S.tripId?'<button data-x="clrref">Effacer le tracé de référence de ce trajet</button>':""}
  <button data-x="gps">${S.gps?"📡 Suivi GPS automatique : ACTIVÉ":"📡 Suivi GPS automatique : désactivé"}</button>
@@ -496,7 +496,7 @@ async function locateStops(prog){
  return{ok,total:names.length};
 }
 
-S.pos=null;S.track=[];S.ref=[];S.mz=sg("bt_mz2",1);S.tiles=sg("bt_tiles",true);const TILE_ALT="https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png";S.tileUrl=sg("bt_tileurl","https://tile.openstreetmap.org/{z}/{x}/{y}.png");S.hd=0;S.route=null;S.navIdx=null;S.gps=sg("bt_gps",true);S.gpsErr="";
+S.pos=null;S.track=[];S.ref=[];S.mz=sg("bt_mz2",1);S.tiles=sg("bt_tiles",true);const TILE_OSM="https://tile.openstreetmap.org/{z}/{x}/{y}.png",TILE_ALT="https://tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png";S.tileUrl=sg("bt_tileurl",TILE_OSM);if(/cartocdn/.test(S.tileUrl||"")){S.tileUrl=TILE_OSM;ss("bt_tileurl",S.tileUrl)}S.hd=0;S.route=null;S.navIdx=null;S.gps=sg("bt_gps",true);S.gpsErr="";
 function saveTrack(){if(S.tripId)ss("bt_cur_"+S.tripId,S.track.slice(-1500))}
 function finishTrack(){const t0=M.trips[S.tripId];if(t0&&S.track.length>10)ss(refKey(t0),S.track.slice(-1500))}
 function loadTracks(fresh){const t0=M.trips[S.tripId];S.ref=(t0&&sg(refKey(t0),null))||sg("bt_ref_"+S.tripId,null)||sg("bt_ref_mine:"+S.tripId,[]);S.track=fresh?[]:sg("bt_cur_"+S.tripId,[]);if(fresh)try{localStorage.removeItem("bt_cur_"+S.tripId)}catch(e){}}
@@ -711,7 +711,7 @@ function updateMap(){
  const ns=navState();if(nv){const h=navHTML(ns,t,ci);if(nv._h!==h){nv._h=h;nv.innerHTML=h}}voiceNav(ns,t,ci);updateEta();autoReroute(ns);
  if(!svg.querySelector("#ov"))svg.innerHTML=`<rect x="-3000" y="-3000" width="6000" height="6000" fill="#0f1720"/><g id="tl"></g><g id="ov"></g>`;
  const tl=svg.querySelector("#tl"),ov=svg.querySelector("#ov");
- if(!tl._ev){tl._ev=1;tl.addEventListener("error",()=>{S.tileErr=(S.tileErr||0)+1;if(S.tileErr===6&&/openstreetmap/.test(S.tileUrl)){S.tileUrl=TILE_ALT;ss("bt_tileurl",S.tileUrl);tl._k=""}},true)}
+ if(!tl._ev){tl._ev=1;tl.addEventListener("load",()=>{S.tileErr=0},true);tl.addEventListener("error",()=>{S.tileErr=(S.tileErr||0)+1;if(S.tileErr>=8){S.tileErr=0;if(S.tileUrl===TILE_OSM)S.tileUrl=TILE_ALT;else if(S.tileUrl===TILE_ALT)S.tileUrl=TILE_OSM;tl._k=""}},true)}
  const fit=S.mz===4||!P;
  let cx,cy,sd,ang=0,ox=VW/2,oy=fit?VH/2:VH*0.7;
  if(fit){
