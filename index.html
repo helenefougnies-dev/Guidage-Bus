@@ -90,18 +90,20 @@ body.day .pill.ok{background:#c9f2e3;color:#0b4a38}body.day .pill.late{backgroun
 .center{text-align:center;padding:2em 1.2em}
 .main{position:relative;flex:1;min-height:0;display:flex}.main .scroll{flex:1}.tl .row:last-child{margin-bottom:60vh}
 .mapbox{position:relative;display:flex;flex-direction:row;height:clamp(170px,37vh,440px);background:#0f1720;border-top:1px solid var(--line);overflow:hidden;z-index:5}
-.mapbox svg{flex:0 0 62%;width:62%;height:100%;display:block}.vbtn{position:absolute;left:.4em;top:.4em;width:2.4em;height:2.4em;padding:0;border-radius:50%;font-size:1.1em;z-index:6;background:#000a;border:1px solid var(--line)}
+.mapbox>svg{flex:0 0 75%;width:75%;height:100%;display:block;touch-action:none}.vbtn{position:absolute;left:.4em;top:.4em;width:2.4em;height:2.4em;padding:0;border-radius:50%;font-size:1.1em;z-index:6;background:#000a;border:1px solid var(--line)}
 .sbtn{left:3.2em}
 #nav{flex:1;display:flex}#nav .nv{flex:1}
-.mside{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden;background:var(--panel)}
+.mside{flex:0 0 25%;width:25%;min-width:0;display:flex;flex-direction:column;overflow:hidden;background:var(--panel)}
 #mcap{font-size:.7em;overflow:hidden;padding:.25em .6em .45em;color:var(--mut);line-height:1.25}#mcap b{color:var(--tx)}
-.nv{display:flex;align-items:center;gap:.6em;padding:.45em .65em;background:#0b5c43;color:#fff;min-height:3.2em}
-.nv b{display:block;font-size:1.5em;line-height:1}.nv span{font-size:.95em;font-weight:600}.nv small{display:block;font-size:.72em;opacity:.85}
-.nv>div{min-width:0;overflow-wrap:anywhere}.nv svg{flex:0 0 auto;width:30px;height:30px}
-@media(max-width:600px){.mapbox svg{flex-basis:56%;width:56%}.nv{gap:.35em;padding:.35em .45em}.nv b{font-size:1.25em}.nv span{font-size:.85em}}
+.nv{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:.25em;padding:.4em .3em;background:#0b5c43;color:#fff;min-height:3.2em}
+.nv b{display:block;font-size:1.25em;line-height:1}.nv span{font-size:.8em;font-weight:600;line-height:1.15}.nv small{display:block;font-size:.66em;opacity:.85}
+.nv>div{min-width:0;overflow-wrap:anywhere}.nv svg{flex:0 0 auto;width:34px;height:34px}
+@media(max-width:600px){.mapbox>svg{flex-basis:75%;width:75%}.nv{gap:.2em;padding:.3em .2em}.nv b{font-size:1.1em}.nv span{font-size:.72em}.nv svg{width:28px;height:28px}}
 .nv.w{background:#33404f;font-size:.85em}.nv.o{background:#a8262b;font-weight:700}
 .c-ok{color:var(--ok)}.c-late{color:var(--late)}.c-vlate{color:var(--vlate)}.c-early{color:var(--early)}
 .prog{height:.5em;background:var(--panel2);border-radius:9px;overflow:hidden}.prog>div{height:100%;background:var(--acc);width:0}
+.pill.atstop{background:#1b6e5a;color:#d7fff0;font-weight:800;border:0}body.day .pill.atstop{background:#c9f2e3;color:#0b4a38}
+.zb1{left:6em}.zb2{left:8.8em}.zb3{left:11.6em}
 </style>
 </head>
 <body>
@@ -273,6 +275,8 @@ function paintWake(){const e=$("#wk");if(e)e.innerHTML='<span class="dot '+(Wake
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&Wake.want)Wake.on()});
 document.addEventListener("pointerdown",()=>{if(Wake.want&&!Wake.ok())Wake.on()},{passive:true});
 setInterval(()=>{if(Wake.want&&!Wake.ok())Wake.on()},20000);
+function goFull(){try{const d=document.documentElement;if(!document.fullscreenElement&&d.requestFullscreen)d.requestFullscreen({navigationUI:"hide"}).catch(()=>{})}catch(e){}}
+["pointerup","click","touchend"].forEach(ev=>document.addEventListener(ev,goFull,{passive:true,capture:true}));
 
 /* ============ État ============ */
 let M=null;                       // modèle GTFS
@@ -327,7 +331,7 @@ function curIdx(t){for(let i=0;i<t.st.length;i++)if(S.passed[i]==null&&!S.skip[t
 const dmin=(p,th)=>Math.floor(p/60)-Math.floor(th/60);
 function dClass(d){return d>=-1&&d<=5?"ok":(d===-2||(d>=6&&d<=8))?"late":"vlate"}
 function dTxt(d){return (d>0?"+":d<0?"−":"±")+Math.abs(d)}
-function lastDelay(t){for(let i=t.st.length-1;i>=0;i--)if(S.passed[i]!=null)return dmin(S.passed[i],t.st[i][1]);return null}
+function lastDelay(t){for(let i=t.st.length-1;i>=0;i--)if(S.passed[i]!=null)return dmin(S.passed[i],t.st[i][2]);return null}
 
 function tripView(){
  const t=M.trips[S.tripId];if(!t){S.view="home";render();return}
@@ -337,8 +341,10 @@ function tripView(){
  let rows="";
  t.st.forEach((s,i)=>{
   const st=M.stops[s[0]]||{n:s[0]};const isDone=S.passed[i]!=null;let pill="";
-  if(isDone){const d=dmin(S.passed[i],s[1]);pill=`<span class="pill ${dClass(d)}">✓ ${fmt(S.passed[i])} (${dTxt(d)})</span>`}
-  else if(i===ci){const e=etaNext(t,ci);pill=e?`<span class="pill prev ${dClass(e.d)}" id="eta">≈ ${fmt(e.s)} (${dTxt(e.d)})</span>`:`<span class="pill prev" id="eta" style="display:none"></span>`}
+  if(isDone){const d=dmin(S.passed[i],s[2]);pill=`<span class="pill ${dClass(d)}">✓ ${fmt(S.passed[i])} (${dTxt(d)})</span>`}
+  else if(i===ci){
+   if(S.at&&S.at.i===ci)pill=`<span class="pill atstop" id="eta">${atTxt()}</span>`;
+   else{const e=etaNext(t,ci);pill=e?`<span class="pill prev ${dClass(e.d)}" id="eta">≈ ${fmt(e.s)} (${dTxt(e.d)})</span>`:`<span class="pill prev" id="eta" style="display:none"></span>`}}
   if(!isDone&&S.skip[s[0]])pill=`<span class="pill" style="background:#7a4a00;color:#fff">🚧 non desservi</span>`;
   const dep=(s[2]-s[1]>=60)?`<small>départ ${fmt(s[2])}</small>`:"";
   const tg=S.tags[i]?`<span class="tag">${H(S.tags[i])}</span>`:"";
@@ -346,13 +352,13 @@ function tripView(){
  });
  const next=t.st[ci]?(M.stops[t.st[ci][0]]||{n:""}).n:"";
  const fin=ci>=t.st.length;const prop=fin&&endProposal(t);
- const maxd=Object.keys(S.passed).reduce((m,i)=>Math.max(m,dmin(S.passed[i],t.st[i][1])),-99);
+ const maxd=Object.keys(S.passed).reduce((m,i)=>Math.max(m,dmin(S.passed[i],t.st[i][2])),-99);
  app.innerHTML=
  `<div class="top"><button class="ibtn backb" data-a="back">← Retour</button><span class="badge" style="background:${col};color:${routeText(M,t.r)}">${H(r.s)}</span><h1>${H(t.h||r.l)}<small>${H(r.l)} · départ ${fmt(t.st[0][2])}</small></h1><span class="clock" id="clk">--</span><button class="ibtn" data-a="settings">⚙</button></div>
- <div class="main"><div class="scroll tl" id="sc">${rows}${fin?`<div class="center"><h2>Trajet terminé ✓</h2><p class="mut">Écart max : ${maxd>-99?dTxt(maxd)+" min":"—"}</p>${prop?`<p>Tu n'as pas suivi exactement le tracé prévu. Utiliser ton tracé pour cette ligne (jusqu'à ce que tu le changes) ?</p><button class="primary" data-a="keeptrace">Oui, garder mon tracé</button><button data-a="end">Non, garder l'ancien</button>`:`<p class="mut">Retour à la liste des lignes…</p><button class="primary" data-a="end">Fermer maintenant</button>`}</div>`:""}</div></div>${fin?"":`<div class="mapbox" id="mp" data-a="mapz"><svg id="msvg" viewBox="0 0 320 220" preserveAspectRatio="xMidYMid meet"></svg><button class="vbtn sbtn" data-a="sync" title="Me repositionner">📍</button><button class="vbtn" data-a="voice">${S.voice?"🔊":"🔇"}</button><div class="mside"><div id="nav"></div></div></div>`}
+ <div class="main"><div class="scroll tl" id="sc">${rows}${fin?`<div class="center"><h2>Trajet terminé ✓</h2><p class="mut">Écart max : ${maxd>-99?dTxt(maxd)+" min":"—"}</p>${prop?`<p>Tu n'as pas suivi exactement le tracé prévu. Utiliser ton tracé pour cette ligne (jusqu'à ce que tu le changes) ?</p><button class="primary" data-a="keeptrace">Oui, garder mon tracé</button><button data-a="end">Non, garder l'ancien</button>`:`<p class="mut">Retour à la liste des lignes…</p><button class="primary" data-a="end">Fermer maintenant</button>`}</div>`:""}</div></div>${fin?"":`<div class="mapbox" id="mp" data-a="mapz"><svg id="msvg" viewBox="0 0 320 220" preserveAspectRatio="xMidYMid meet"></svg><button class="vbtn sbtn" data-a="sync" title="Me repositionner">📍</button><button class="vbtn" data-a="voice">${S.voice?"🔊":"🔇"}</button><button class="vbtn zb1" data-a="zin" title="Zoom +">+</button><button class="vbtn zb2" data-a="zout" title="Zoom −">−</button><button class="vbtn zb3" data-a="zfree" title="Recentrer sur moi" style="display:${S.free?"":"none"}">🎯</button><div class="mside"><div id="nav"></div></div></div>`}
 `;
  const c=$("#cur"),sc=$("#sc"),pv=sc&&sc.querySelector('.row[data-i="'+(ci-1)+'"]');if(c&&sc)sc.scrollTop=Math.max(0,(pv||c).offsetTop-2);
- tickClock();updateMap();gpsStatus();
+ tickClock();bindMap();updateMap();gpsStatus();
  if(fin&&!prop&&!S.endT)S.endT=setTimeout(autoEnd,4500);
 }
 function etaNext(t,ci){
@@ -372,11 +378,13 @@ function etaNext(t,ci){
  if(S.etaK===ci&&S.etaS!=null)sec=S.etaS+(sec-S.etaS)*.35;S.etaK=ci;S.etaS=sec;sec=Math.round(sec);
  return{s:sec,d:dmin(sec,th)};
 }
-function updateEta(){const e=$("#eta");if(!e)return;const t=M.trips[S.tripId];if(!t)return;const r=etaNext(t,curIdx(t));if(!r){e.style.display="none";return}e.style.display="";e.className="pill prev "+dClass(r.d);e.textContent="≈ "+fmt(r.s)+" ("+dTxt(r.d)+")"}
+function updateEta(){const e=$("#eta");if(!e)return;const t=M.trips[S.tripId];if(!t)return;const ci=curIdx(t);
+ if(S.at&&S.at.i===ci){e.style.display="";e.className="pill atstop";e.textContent=atTxt();return}
+ const r=etaNext(t,ci);if(!r){e.style.display="none";return}e.style.display="";e.className="pill prev "+dClass(r.d);e.textContent="≈ "+fmt(r.s)+" ("+dTxt(r.d)+")"}
 function trackComplete(t){const a=actStops(t);if(!a.length)return false;const f=stopLL(a[0][0]),l=stopLL(a[a.length-1][0]);if(!f||!l||S.track.length<30)return false;const A=S.track[0],B=S.track[S.track.length-1];return dist(A[0],A[1],f[0],f[1])<250&&dist(B[0],B[1],l[0],l[1])<250}
 function trackDiffers(){const R=S.base;if(!R||!S.track.length)return false;let far=0,n=0;for(let i=0;i<S.track.length;i+=3){const q=S.track[i];n++;let b=1e9;for(let k=0;k<R.pts.length;k++){const d=dist(q[0],q[1],R.pts[k][0],R.pts[k][1]);if(d<b)b=d;if(b<60)break}if(b>80)far++}return far>=5&&far/n>.06}
 function endProposal(t){return !!(S.base&&trackComplete(t)&&trackDiffers())}
-function doEnd(){clearTimeout(S.endT);S.endT=null;stopGPS();S.tripId=null;saveSession();S.view="home";render()}
+function doEnd(){clearTimeout(S.endT);S.endT=null;stopGPS();S.at=null;S.tripId=null;saveSession();S.view="home";render()}
 function autoEnd(){S.endT=null;const t=M.trips[S.tripId];if(S.view!=="trip"||!t||curIdx(t)<t.st.length)return;if(!(S.ref&&S.ref.length>=20)&&!S.base&&trackComplete(t))finishTrack();doEnd()}
 function tickClock(){const e=$("#clk");if(e)e.textContent=fmtS(nowSec());if(S.view==="trip")updateEta();
 }
@@ -393,19 +401,11 @@ function openSheet(html){const m=document.createElement("div");m.className="moda
 function stopSheet(i){
  const t=M.trips[S.tripId],s=t.st[i],nm=(M.stops[s[0]]||{n:""}).n;
  const m=openSheet(`<h2>${H(nm)}</h2><div class="mut">Heure théorique ${fmt(s[1])}${S.passed[i]!=null?" · pointé à "+fmtS(S.passed[i]):""}</div>
- <button data-x="here">📍 Je suis ici (marque les arrêts précédents comme passés)</button>
- <button data-x="now">✓ Pointer cet arrêt maintenant</button>
  <button data-x="skip">${S.skip[s[0]]?"✅ Arrêt de nouveau desservi":"🚧 Arrêt non desservi (travaux / déviation)"}</button>
- <div><label>Corriger l'heure réelle (hh:mm)</label><div style="display:flex;gap:.5em"><input id="hm" type="time" value="${S.passed[i]!=null?pad(Math.floor(S.passed[i]/3600)%24)+":"+pad(Math.floor(S.passed[i]%3600/60)):""}"><button data-x="set">OK</button></div></div>
- <div><label>Note sur cet arrêt (trafic, travaux, élève absent…)</label><div style="display:flex;gap:.5em"><input id="nt" value="${H(S.notes[i]||"")}"><button data-x="note">OK</button></div></div>
  ${S.passed[i]!=null?'<button data-x="clear">Effacer le pointage de cet arrêt</button>':""}
  <button data-x="close">Fermer</button>`);
  m.addEventListener("click",e=>{const x=e.target.closest("[data-x]")?.dataset.x;if(!x)return;
-  if(x==="here"){const n=nowSec();for(let k=0;k<i;k++)if(S.passed[k]==null)S.passed[k]=Math.min(n,t.st[k][1]+(lastDelay(t)??0)*60);S.passed[i]=n;S.lastArr=i;}
-  else if(x==="now"){S.passed[i]=nowSec();S.lastArr=i}
-  else if(x==="skip"){if(S.skip[s[0]])delete S.skip[s[0]];else S.skip[s[0]]=1;ss("bt_skip",S.skip);buildRoute()}
-  else if(x==="set"){const v=parseT($("#hm").value);if(v==null)return;S.passed[i]=v}
-  else if(x==="note"){const v=$("#nt").value.trim();if(v)S.notes[i]=v;else delete S.notes[i]}
+  if(x==="skip"){if(S.skip[s[0]])delete S.skip[s[0]];else S.skip[s[0]]=1;ss("bt_skip",S.skip);buildRoute()}
   else if(x==="clear"){delete S.passed[i]}
   m.remove();saveSession();render()});
 }
@@ -420,6 +420,7 @@ function settings(){
  <div><label>Jour de service</label><input id="dt" type="date" value="${ymdDash(S.date)}"></div>
  <div style="display:flex;gap:.5em"><button data-x="theme" style="flex:1">${theme==="day"?"🌙 Mode nuit":"☀️ Mode jour"}</button><button data-x="fm" style="flex:1">A−</button><button data-x="fp" style="flex:1">A+</button></div>
  <button data-x="voice">${S.voice?"🔊 Guidage vocal : activé":"🔇 Guidage vocal : désactivé"}</button>
+ <div style="display:flex;gap:.5em"><button data-x="vtest" style="flex:1">🔊 Tester la voix</button><button data-x="vnext" style="flex:1">Changer de voix</button></div><div class="mut">Voix : ${H(vname())}</div>
  <div style="display:flex;gap:.5em"><button data-x="wake" style="flex:1">${Wake.ok()?"Écran allumé : ON":"Garder l'écran allumé"}</button><button data-x="fs" style="flex:1">Plein écran</button></div>
  <div><label>Guidage (virages) – source : ${S.route?S.route.src:"aucune"}</label><button data-x="loc" style="width:100%;margin-bottom:.4em">📍 Localiser les arrêts par leur nom (Internet)</button><div class="mut" id="lcs" style="margin-bottom:.4em"></div><button data-x="osrm" style="width:100%">Calculer l'itinéraire en ligne (trajet en cours)</button><div class="mut" id="osr" style="margin-top:.3em"></div></div>
  <div style="display:flex;gap:.5em"><button data-x="tiles" style="flex:1">${S.tiles?"🗺️ Fond de carte : ON":"🗺️ Fond de carte : OFF"}</button></div>
@@ -440,6 +441,8 @@ function settings(){
   else if(x==="theme"){theme=theme==="day"?"night":"day";ss("bt_theme",theme);applyPrefs();m.remove();settings()}
   else if(x==="fm"||x==="fp"){fscale=Math.min(1.6,Math.max(.8,+(fscale+(x==="fp"?.1:-.1)).toFixed(2)));ss("bt_fs",fscale);applyPrefs()}
   else if(x==="wake"){await Wake.on();m.remove();settings()}
+  else if(x==="vtest"){say("Dans 300 mètres, prenez la première à droite. Au rond-point, prenez la troisième sortie.",true)}
+  else if(x==="vnext"){try{const all=speechSynthesis.getVoices().filter(v=>/^fr/i.test(v.lang));if(all.length){const k=all.indexOf(pickVoice());ss("bt_voicename",all[(k+1)%all.length].name)}}catch(er){}m.remove();settings();say("Bonjour, voici cette voix.",true)}
   else if(x==="fs"){try{await document.documentElement.requestFullscreen()}catch(er){}}
   else if(x==="loc"){const e=$("#lcs");try{const r=await locateStops(t=>e.textContent=t);e.textContent=r.ok+" arrêts localisés sur "+r.total+".";if(S.tripId){e.textContent+=" Calcul de l'itinéraire…";e.textContent=r.ok+"/"+r.total+" arrêts localisés. "+await fetchOSRM()}}catch(er){e.textContent="Échec : "+er.message+" (connexion nécessaire)"}}
   else if(x==="osrm"){$("#osr").textContent="Calcul…";$("#osr").textContent=await fetchOSRM()}
@@ -539,22 +542,54 @@ function resync(manual){
  const ld=lastDelay(t)??0;
  for(let k=0;k<target;k++)if(S.passed[k]==null)S.passed[k]=Math.min(n,t.st[k][1]+ld*60);
  if(manual)for(let k=target;k<t.st.length;k++)delete S.passed[k];
- S.lastArr=target>0?target-1:-1;S.lastArrAt=Date.now();saveSession();render();
+ S.at=null;S.lastArr=target>0?target-1:-1;S.lastArrAt=Date.now();saveSession();render();
  say("Position retrouvée. Prochain arrêt : "+(M.stops[t.st[target][0]]||{n:""}).n.split(" - ").pop(),true);
  return true;
 }
+/* --- Arrêt en cours : compteur à l'arrêt, heure de passage = heure de redémarrage --- */
+function stopSpeed(){const h=S.hist;if(!h||h.length<2)return null;const b=h[h.length-1];let a=h[0];for(let i=h.length-2;i>=0;i--){if(b[0]-h[i][0]>=4000){a=h[i];break}}const dt=(b[0]-a[0])/1000;return dt<1.5?null:dist(a[1],a[2],b[1],b[2])/dt}
+const fmtDur=s=>{s=Math.max(0,Math.floor(s));return Math.floor(s/60)+":"+pad(s%60)};
+const atTxt=()=>"⏱ "+fmtDur((Date.now()-S.at.t0)/1000);
+function enterStop(j){
+ const t=M.trips[S.tripId];if(!t)return;
+ if(j>=t.st.length-1){arrive(j);return}
+ S.at={i:j,t0:Date.now(),still:false,mv:null,min:1e9};
+ S.lastArr=j;S.lastArrAt=Date.now();render();
+}
+function leaveStop(){
+ const A=S.at;if(!A)return;S.at=null;
+ S.passed[A.i]=A.mv!=null?A.mv:nowSec();
+ S.lastArr=A.i;S.lastArrAt=Date.now();saveSession();render();
+}
 function autoDetect(){
  if(!S.gps)return;const t=M.trips[S.tripId],p=S.pos;if(!t||!p||p.acc>70)return;
- if(!Object.keys(S.passed).length&&resync(false))return;
- const ci=curIdx(t);if(ci>=t.st.length)return;
+ if(!Object.keys(S.passed).length&&!S.at&&resync(false))return;
+ let ci=curIdx(t);if(ci>=t.st.length){S.at=null;return}
+ const rad=45+Math.min(p.acc,25);
+ if(S.at){
+  if(S.at.i!==ci)S.at=null;
+  else{
+   const A=S.at,ll=stopLL(t.st[ci][0]);
+   if(!ll)S.at=null;
+   else{
+    const v=p.sp!=null?p.sp:stopSpeed();
+    if(v!=null){if(v<1.5){A.still=true;A.mv=null}else if(A.still){A.still=false;A.mv=nowSec()}}
+    const d=dist(p.la,p.lo,ll[0],ll[1]);A.min=Math.min(A.min,d);
+    const nx=t.st[ci+1]&&stopLL(t.st[ci+1][0]),dn=nx?dist(p.la,p.lo,nx[0],nx[1]):1e9;
+    const gone=d>55+Math.min(p.acc,25)&&d>A.min+15,toNext=nx&&dn<rad&&dn<d&&d>A.min+20;
+    if(gone||toNext){leaveStop();ci=curIdx(t);if(ci>=t.st.length)return}
+    else return;
+   }
+  }
+ }
  for(let j=ci;j<=Math.min(ci+1,t.st.length-1);j++){
   const ll=stopLL(t.st[j][0]);if(!ll)continue;
-  if(dist(p.la,p.lo,ll[0],ll[1])>45+Math.min(p.acc,25))continue;
+  if(dist(p.la,p.lo,ll[0],ll[1])>rad)continue;
   if(j>ci){const l0=stopLL(t.st[ci][0]);if(l0&&dist(p.la,p.lo,l0[0],l0[1])<60)continue}
   if(j===ci&&ci>0){const lp=stopLL(t.st[ci-1][0]);if(lp&&dist(lp[0],lp[1],ll[0],ll[1])<40&&Date.now()-(S.lastArrAt||0)<90000)continue}
   const ld=lastDelay(t)??0,n=nowSec();
-  for(let k=ci;k<j;k++)if(S.passed[k]==null)S.passed[k]=Math.min(n,t.st[k][1]+ld*60);
-  arrive(j);return;
+  for(let k=ci;k<j;k++)if(S.passed[k]==null)S.passed[k]=Math.min(n,t.st[k][2]+ld*60);
+  enterStop(j);return;
  }
 }
 function gpsStatus(){const e=$("#gps");if(!e)return;
@@ -591,7 +626,7 @@ function routeFromOSRM(j){
   const c=st.geometry.coordinates.map(q=>[+q[1].toFixed(5),+q[0].toFixed(5)]);
   const start=pts.length?pts.length-1:0;
   const ty=st.maneuver.type;
-  if(ty!=="depart"&&ty!=="arrive"){const k=osrmKind(st.maneuver);if(k&&k!=="S"&&!(ty==="new name"&&k==="S"))man.push({i:start,k,x:st.maneuver.exit||0,nm:st.name||"",o:ordOf(prevSt,k)})}
+  if(ty!=="depart"&&ty!=="arrive"){const k=osrmKind(st.maneuver);if(k&&k!=="S"&&!(ty==="new name"&&k==="S"))man.push({i:start,k,x:st.maneuver.exit||0,nm:st.name||"",o:ordOf(prevSt,k),md:st.maneuver.modifier||""})}
   prevSt=st;
   c.forEach((q,ix)=>{if(ix===0&&pts.length)return;pts.push(q)});
  }));
@@ -645,7 +680,7 @@ async function reroute(src){
  S.rrBusy=true;S.rrAt=Date.now();const id=S.tripId;
  try{const R=await osrmChain(wp,(P.sp||0)>2?S.hd:null);
   if(S.tripId!==id||S.view!=="trip")return;
-  S.route=mkRoute(R.pts,R.man,src);S.navIdx=null;S.lastNs=null;S.offN=0;S.vs={};S.vOff=false;updateMap();say(src==="départ"?"Itinéraire vers le départ calculé":"Nouvel itinéraire calculé",true)}
+  S.route=mkRoute(R.pts,R.man,src);S.navIdx=null;S.lastNs=null;S.offN=0;S.vs={};S.vOff=false;updateMap();if(src==="départ")say("Itinéraire vers le départ calculé",true)}
  catch(e){S.rrErr=e.message}
  finally{S.rrBusy=false}
 }
@@ -674,8 +709,26 @@ const fd=m=>m>=1000?(m/1000).toFixed(1)+" km":(m<100?Math.round(m/5)*5:Math.roun
 function arrowSVG(k,sz){const a=MANG[k]??0;return`<svg width="${sz}" height="${sz}" viewBox="-14 -14 28 28"><g transform="rotate(${a})"><path d="M0,-12 L9,-1 L3,-1 L3,12 L-3,12 L-3,-1 L-9,-1Z" fill="#fff"/></g>${k==="RB"?'<circle r="12" fill="none" stroke="#fff" stroke-width="2"/>':""}</svg>`}
 /* ===== Guidage vocal ===== */
 const MORD={L:"à gauche",R:"à droite",SL:"à gauche",SR:"à droite"};
-const VTXT={L:"tournez à gauche",R:"tournez à droite",SL:"serrez légèrement à gauche",SR:"serrez légèrement à droite",HL:"virage serré à gauche",HR:"virage serré à droite",U:"faites demi-tour",RB:"au rond-point"};
-function say(txt,urgent){if(!S.voice||!("speechSynthesis" in window))return;try{const u=new SpeechSynthesisUtterance(txt);u.lang="fr-FR";const v=speechSynthesis.getVoices().find(x=>/^fr/i.test(x.lang));if(v)u.voice=v;if(urgent)speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
+const ORDF=["","première","deuxième","troisième","quatrième","cinquième","sixième","septième"];
+const VTXT={L:"tournez à gauche",R:"tournez à droite",SL:"tournez légèrement à gauche",SR:"tournez légèrement à droite",HL:"faites un virage serré à gauche",HR:"faites un virage serré à droite",U:"faites demi-tour",RB:"au rond-point"};
+function pickVoice(){try{const all=speechSynthesis.getVoices().filter(x=>/^fr/i.test(x.lang));const w=sg("bt_voicename",null);return all.find(x=>x.name===w)||all[0]||null}catch(e){return null}}
+const vname=()=>{const v=pickVoice();return v?v.name:"par défaut"};
+function say(txt,urgent){if(!S.voice||!("speechSynthesis" in window))return;try{const u=new SpeechSynthesisUtterance(txt);u.lang="fr-FR";u.volume=1;u.rate=.95;u.pitch=1;const v=pickVoice();if(v)u.voice=v;if(urgent)speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
+function vWhat(m){
+ let w;
+ if(m.k==="RB"){
+  if(m.x>0)w="au rond-point, prenez la "+(ORDF[m.x]||(m.x+"ème"))+" sortie";
+  else{const md=m.md||"";w=/left/.test(md)?"au rond-point, prenez à gauche":/right/.test(md)?"au rond-point, prenez à droite":md==="straight"?"au rond-point, continuez tout droit":"au rond-point"}
+ }
+ else if(m.o>=1&&MORD[m.k])w="prenez la "+ORDF[m.o]+" "+MORD[m.k];
+ else w=VTXT[m.k];
+ return w+(m.nm?", "+m.nm:"");
+}
+function vShort(m){
+ if(m.k==="RB")return"Rond-point"+(m.x>0?" – "+m.x+(m.x===1?"re":"e")+" sortie":"");
+ if(m.o>=1&&MORD[m.k])return m.o+(m.o===1?"re":"e")+" "+MORD[m.k];
+ return MTXT[m.k]||"";
+}
 function voiceNav(ns,t,ci){
  if(!S.voice)return;
  const stopNm=i=>{const x=t.st[i];return x?(M.stops[x[0]]||{n:""}).n.split(" - ").pop():""};
@@ -684,24 +737,23 @@ function voiceNav(ns,t,ci){
  if(ci>=t.st.length&&!S.vEnd){S.vEnd=true;say("Terminus, trajet terminé")}
  if(!ns||!S.route)return;
  if(S.vRoute!==S.route){S.vRoute=S.route;S.vs={};S.vOff=false}
- if(ns.off){if(!S.vOff){S.vOff=true;say("Vous êtes hors itinéraire",true)}return}
- S.vOff=false;
+ if(ns.off)return;
  const m=ns.man;if(!m||m.k==="S"||!VTXT[m.k])return;
- const d=ns.dm,key=m.i,st=S.vs[key]||0;
- const what=(m.o>=2&&MORD[m.k]?"prenez la "+m.o+"ème "+MORD[m.k]:m.k==="RB"?"au rond-point, prenez la "+(m.x||1)+(m.x===1?"ère":"ème")+" sortie":VTXT[m.k])+(m.nm?", "+m.nm:"");
- let lvl=d<=35?3:d<=120?2:d<=450?1:0;
+ const d=ns.dm,key=m.i,st=S.vs[key]||0,what=vWhat(m);
+ const lvl=d<=35?3:d<=120?2:d<=450?1:0;
  if(lvl>st){S.vs[key]=lvl;
   if(lvl===1)say("Dans "+(Math.round(d/50)*50)+" mètres, "+what,true);
   else if(lvl===2)say("Dans 100 mètres, "+what,true);
-  else say(what.charAt(0).toUpperCase()+what.slice(1)+" maintenant",true)}
+  else say(what.charAt(0).toUpperCase()+what.slice(1),true)}
 }
 function navHTML(ns,t,ci){
  if(!S.pos)return`<div class="nv w">Recherche du GPS…</div>`;
- if(!S.route||S.route.src==="arrêts"){const nx=t&&t.st[ci],ll=nx&&stopLL(nx[0]);return`<div class="nv">${arrowSVG("S",40)}<div><b>${ll?fd(dist(S.pos.la,S.pos.lo,ll[0],ll[1])):""}</b><span>${nx?H((M.stops[nx[0]]||{n:""}).n.split(" - ").pop()):"Terminus"}</span><small>${navigator.onLine===false?"Hors ligne : tracé routier non calculé":(S.osrmErr?"Tracé routier indisponible ("+H(S.osrmErr)+") – nouvel essai…":"Calcul du tracé routier…")}</small></div></div>`}
+ if(!S.route||S.route.src==="arrêts"||(ns&&ns.off)){const nx=t&&t.st[ci],ll=nx&&stopLL(nx[0]);
+  const sm=(!S.route||S.route.src==="arrêts")?`<small>${navigator.onLine===false?"Hors ligne : tracé routier non calculé":(S.osrmErr?"Tracé routier indisponible ("+H(S.osrmErr)+") – nouvel essai…":"Calcul du tracé routier…")}</small>`:"";
+  return`<div class="nv">${arrowSVG("S",34)}<div><b>${ll?fd(dist(S.pos.la,S.pos.lo,ll[0],ll[1])):""}</b><span>${nx?H((M.stops[nx[0]]||{n:""}).n.split(" - ").pop()):"Terminus"}</span>${sm}</div></div>`}
  if(!ns)return"";
- if(ns.off)return`<div class="nv o"><div>Hors itinéraire<small>à ${fd(ns.bd)} du tracé</small></div></div>`;
- if(ns.man&&ns.dm<3000){const m=ns.man;return`<div class="nv">${arrowSVG(m.k,40)}<div><b>${fd(ns.dm)}</b><span>${m.o>=2&&MORD[m.k]?m.o+"e "+MORD[m.k]:MTXT[m.k]}${m.k==="RB"&&m.x?" – "+m.x+(m.x===1?"re":"e")+" sortie":""}</span>${m.nm?`<small>${H(m.nm)}</small>`:""}</div></div>`}
- return`<div class="nv">${arrowSVG("S",40)}<div><b>Tout droit</b><span>${fd(ns.rem)} jusqu'à la fin du trajet</span></div></div>`;
+ if(ns.man&&ns.dm<3000){const m=ns.man;return`<div class="nv">${arrowSVG(m.k,34)}<div><b>${fd(ns.dm)}</b><span>${vShort(m)}</span>${m.nm?`<small>${H(m.nm)}</small>`:""}</div></div>`}
+ return`<div class="nv">${arrowSVG("S",34)}<div><b>Tout droit</b><span>${fd(ns.rem)} jusqu'à la fin</span></div></div>`;
 }
 function updateMap(){
  const svg=$("#msvg"),nv=$("#nav");if(!svg||S.view!=="trip")return;const t=M.trips[S.tripId];if(!t)return;
@@ -712,9 +764,10 @@ function updateMap(){
  if(!svg.querySelector("#ov"))svg.innerHTML=`<rect x="-3000" y="-3000" width="6000" height="6000" fill="#0f1720"/><g id="tl"></g><g id="ov"></g>`;
  const tl=svg.querySelector("#tl"),ov=svg.querySelector("#ov");
  if(!tl._ev){tl._ev=1;tl.addEventListener("load",()=>{S.tileErr=0},true);tl.addEventListener("error",()=>{S.tileErr=(S.tileErr||0)+1;if(S.tileErr>=8){S.tileErr=0;if(S.tileUrl===TILE_OSM)S.tileUrl=TILE_ALT;else if(S.tileUrl===TILE_ALT)S.tileUrl=TILE_OSM;tl._k=""}},true)}
- const fit=S.mz===4||!P;
+ const free=!!S.free,fit=free||S.mz===4||!P;
  let cx,cy,sd,ang=0,ox=VW/2,oy=fit?VH/2:VH*0.7;
- if(fit){
+ if(free){cx=S.free.cx;cy=S.free.cy;sd=S.free.sd}
+ else if(fit){
   const pts=[];if(S.route)S.route.pts.forEach(q=>pts.push(q));else{SL.forEach(q=>q&&pts.push(q));S.track.forEach(q=>pts.push(q))}if(P)pts.push([P.la,P.lo]);
   if(pts.length<2){tl.innerHTML="";tl._k="";ov.innerHTML=`<text x="12" y="80" fill="#8fa1b3" font-size="12">Recherche du GPS…</text>`;return}
   const xs=pts.map(q=>wxf(q[1])),ys=pts.map(q=>wyf(q[0])),x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
@@ -722,6 +775,7 @@ function updateMap(){
  }else{
   cx=wxf(P.lo);cy=wyf(P.la);sd=[2,1,.5,.25][S.mz]||1;ang=-(S.hd||0);
  }
+ S.v0={cx,cy,sd};{const zb=$(".zb3");if(zb)zb.style.display=S.free?"":"none"}
  const ca=Math.cos(ang*RAD),sa=Math.sin(ang*RAD);
  const sc=q=>{const x=(wxf(q[1])-cx)*sd,y=(wyf(q[0])-cy)*sd;return[(ox+x*ca-y*sa).toFixed(1),(oy+x*sa+y*ca).toFixed(1)]};
  let tiles=false;
@@ -750,27 +804,48 @@ function updateMap(){
  ov.innerHTML=out+`<text x="4" y="${VH-4}" font-size="8" fill="#b6c4d2" stroke="#0f1720" stroke-width="2" paint-order="stroke">${S.gps?(P?"📡 ±"+Math.round(P.acc)+" m":"📡 recherche…"):"📡 GPS off"}${tiles?" · "+al:""}</text>`;
 }
 
+/* ============ Carte : déplacer / zoomer avec les doigts ============ */
+const zclamp=x=>Math.min(6,Math.max(.04,x));
+function mapView(){if(!S.free&&S.v0)S.free={cx:S.v0.cx,cy:S.v0.cy,sd:S.v0.sd};return S.free}
+function freeTouch(){clearTimeout(S.freeT);S.freeT=setTimeout(()=>{S.free=null;if(S.view==="trip")updateMap()},25000)}
+let mapRaf=0;const mapSched=()=>{if(mapRaf)return;mapRaf=requestAnimationFrame(()=>{mapRaf=0;updateMap()})};
+function bindMap(){
+ const mp=$("#mp");if(!mp||mp._b)return;mp._b=1;
+ const ptr=new Map();let acc=0;
+ const upp=()=>{const bb=$("#msvg").getBoundingClientRect();return bb.height>0?220/bb.height:1};
+ mp.addEventListener("pointerdown",e=>{if(!e.target.closest("svg"))return;ptr.set(e.pointerId,[e.clientX,e.clientY]);acc=0;try{mp.setPointerCapture(e.pointerId)}catch(_){}});
+ mp.addEventListener("pointermove",e=>{const pv=ptr.get(e.pointerId);if(!pv)return;const cu=[e.clientX,e.clientY];
+  if(ptr.size===1){const dx=cu[0]-pv[0],dy=cu[1]-pv[1];acc+=Math.hypot(dx,dy);if(acc>8){const f=mapView();if(f){const k=upp();f.cx-=dx*k/f.sd;f.cy-=dy*k/f.sd;freeTouch();mapSched()}}}
+  else if(ptr.size>=2){const o=[...ptr.entries()].find(x=>x[0]!==e.pointerId)[1],d0=Math.hypot(pv[0]-o[0],pv[1]-o[1]),d1=Math.hypot(cu[0]-o[0],cu[1]-o[1]);if(d0>10){const f=mapView();if(f){f.sd=zclamp(f.sd*d1/d0);acc=99;freeTouch();mapSched()}}}
+  ptr.set(e.pointerId,cu)});
+ const up=e=>{if(!ptr.has(e.pointerId))return;ptr.delete(e.pointerId);if(acc>8)S.noClickUntil=Date.now()+400;if(!ptr.size)acc=0};
+ mp.addEventListener("pointerup",up);mp.addEventListener("pointercancel",up);
+ mp.addEventListener("wheel",e=>{e.preventDefault();const f=mapView();if(f){f.sd=zclamp(f.sd*Math.exp(-e.deltaY*.002));freeTouch();mapSched()}},{passive:false});
+}
+
 /* ============ Événements globaux ============ */
 document.addEventListener("click",e=>{
  const el=e.target.closest("[data-a],[data-r],[data-t],[data-i],[data-f],[data-tr]");if(!el||e.target.closest(".modal"))return;
  const d=el.dataset;
  if(d.f){S.filter=d.f;render();return}
  if(d.r){S.route=d.r;S.view="trips";render();return}
- if(d.t){S.tripId=d.t;S.passed={};S.tags={};S.notes={};S.traffic="";S.lastArr=-1;S.refSaved=false;S.startedAt=Date.now();S.view="trip";S.lastArrAt=0;loadTracks(true);buildRoute();saveSession();Wake.on();if(S.gps)startGPS();render();if(!S.route&&navigator.onLine)fetchOSRM();return}
+ if(d.t){S.tripId=d.t;S.at=null;S.free=null;S.passed={};S.tags={};S.notes={};S.traffic="";S.lastArr=-1;S.refSaved=false;S.startedAt=Date.now();S.view="trip";S.lastArrAt=0;loadTracks(true);buildRoute();saveSession();Wake.on();if(S.gps)startGPS();render();if(!S.route&&navigator.onLine)fetchOSRM();return}
  if(d.i!=null){stopSheet(+d.i);return}
  if(d.tr){S.traffic=S.traffic===d.tr?"":d.tr;const t=M.trips[S.tripId],i=curIdx(t);const k=Math.min(i,t.st.length-1);if(S.traffic&&S.traffic!=="Fluide")S.tags[k]=S.traffic;saveSession();render();return}
  switch(d.a){
   case"settings":settings();break;
-  case"back":if(S.view==="trip"){saveSession();stopGPS();clearTimeout(S.endT);S.endT=null;S.tripId=null}S.view="home";render();break;
+  case"back":if(S.view==="trip"){saveSession();stopGPS();S.at=null;clearTimeout(S.endT);S.endT=null;S.tripId=null}S.view="home";render();break;
   case"arrive":arrive(null,null,true);break;
   case"saveref":finishTrack();S.refSaved=true;render();break;
   case"sync":{if(!resync(true)){const m=openSheet(`<h2>Position non trouvée</h2><div class="mut">Le GPS n'a pas de position précise, ou tu es trop loin des arrêts de cette course. Réessaie dans quelques secondes, ou touche un arrêt dans la liste puis « Je suis ici ».</div><button data-x="close">Fermer</button>`);m.addEventListener("click",e=>{if(e.target.closest("[data-x]"))m.remove()})}break}
   case"voice":{S.voice=!S.voice;ss("bt_voice",S.voice);const b=$(".vbtn");if(b)b.textContent=S.voice?"🔊":"🔇";if(S.voice)say("Guidage vocal activé",true);else try{speechSynthesis.cancel()}catch(e){}break}
-  case"mapz":S.mz=((S.mz??1)+1)%5;ss("bt_mz2",S.mz);updateMap();break;
+  case"mapz":if(Date.now()<(S.noClickUntil||0))break;if(S.free){S.free=null;clearTimeout(S.freeT)}else{S.mz=((S.mz??1)+1)%5;ss("bt_mz2",S.mz)}updateMap();break;
+  case"zin":case"zout":{const f=mapView();if(f){f.sd=zclamp(f.sd*(d.a==="zin"?1.5:1/1.5));freeTouch()}updateMap();break}
+  case"zfree":S.free=null;clearTimeout(S.freeT);updateMap();break;
   case"undo":{const t=M.trips[S.tripId];const ks=Object.keys(S.passed).map(Number);if(!ks.length)break;const k=Math.max(...ks);delete S.passed[k];S.lastArr=ks.filter(x=>x!==k).length?Math.max(...ks.filter(x=>x!==k)):-1;saveSession();render();break}
   case"end":doEnd();break;
   case"keeptrace":finishTrack();doEnd();break;
-  case"resume":{const s=sg("bt_session",null);if(s){Object.assign(S,{date:s.date,tripId:s.tripId,passed:s.passed||{},tags:s.tags||{},notes:s.notes||{},traffic:s.traffic||"",startedAt:s.startedAt,lastArr:s.lastArr??-1,view:"trip"});loadTracks(false);buildRoute();Wake.on();if(S.gps)startGPS();render()}break}
+  case"resume":{const s=sg("bt_session",null);if(s){S.at=null;S.free=null;Object.assign(S,{date:s.date,tripId:s.tripId,passed:s.passed||{},tags:s.tags||{},notes:s.notes||{},traffic:s.traffic||"",startedAt:s.startedAt,lastArr:s.lastArr??-1,view:"trip"});loadTracks(false);buildRoute();Wake.on();if(S.gps)startGPS();render()}break}
   case"drop":S.tripId=null;saveSession();render();break;
   case"demo":(async()=>{M=withMine(demoModel());await DB.set("gtfs",M);S.view="home";render()})();break;
  }
@@ -787,7 +862,7 @@ window.addEventListener("beforeunload",saveSession);
   Object.assign(S,{date:s.date,tripId:s.tripId,passed:s.passed||{},tags:s.tags||{},notes:s.notes||{},traffic:s.traffic||"",startedAt:s.startedAt,lastArr:s.lastArr??-1,view:"trip"});loadTracks(false);buildRoute();
  }
  render();
- if(S.view==="trip"){Wake.on();if(S.gps)startGPS()}
+ Wake.on();if(S.view==="trip"&&S.gps)startGPS();
 })();
 if("serviceWorker" in navigator&&/^https?:/.test(location.protocol)){navigator.serviceWorker.register("sw.js").catch(()=>{})}
 </script>
