@@ -276,7 +276,6 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
 document.addEventListener("pointerdown",()=>{if(Wake.want&&!Wake.ok())Wake.on()},{passive:true});
 setInterval(()=>{if(Wake.want&&!Wake.ok())Wake.on()},20000);
 function goFull(){try{const d=document.documentElement;if(!document.fullscreenElement&&d.requestFullscreen)d.requestFullscreen({navigationUI:"hide"}).catch(()=>{})}catch(e){}}
-["pointerup","click","touchend"].forEach(ev=>document.addEventListener(ev,goFull,{passive:true,capture:true}));
 
 /* ============ État ============ */
 let M=null;                       // modèle GTFS
