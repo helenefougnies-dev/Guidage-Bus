@@ -384,7 +384,7 @@ function trackComplete(t){const a=actStops(t);if(!a.length)return false;const f=
 function trackDiffers(){const R=S.base;if(!R||!S.track.length)return false;let far=0,n=0;for(let i=0;i<S.track.length;i+=3){const q=S.track[i];n++;let b=1e9;for(let k=0;k<R.pts.length;k++){const d=dist(q[0],q[1],R.pts[k][0],R.pts[k][1]);if(d<b)b=d;if(b<60)break}if(b>80)far++}return far>=5&&far/n>.06}
 function endProposal(t){return false}
 function doEnd(){clearTimeout(S.endT);S.endT=null;stopGPS();S.at=null;S.tripId=null;saveSession();S.view="home";render()}
-function autoEnd(){S.endT=null;const t=M.trips[S.tripId];if(S.view!=="trip"||!t||curIdx(t)<t.st.length)return;if(trackComplete(t)){if(actStops(t).length<t.st.length){if(!sg(detKey(t),null))ss(detKey(t),S.track.slice(-1500))}else if(!(S.ref&&S.ref.length>=20))finishTrack()}doEnd()}
+function autoEnd(){S.endT=null;const t=M.trips[S.tripId];if(S.view!=="trip"||!t||curIdx(t)<t.st.length)return;if(trackComplete(t)){if(actStops(t).length<t.st.length){{const d0=sg(detKey(t),null);if(!d0||d0.length===1500)ss(detKey(t),thinT(S.track))}}else if(!(S.ref&&S.ref.length>=20))finishTrack()}doEnd()}
 function tickClock(){const e=$("#clk");if(e)e.textContent=fmtS(nowSec());if(S.view==="trip")updateEta();
 }
 setInterval(tickClock,1000);
@@ -499,9 +499,10 @@ async function locateStops(prog){
 }
 
 S.pos=null;S.track=[];S.ref=[];S.mz=sg("bt_mz2",1);S.tiles=sg("bt_tiles",true);const TILE_OSM="https://tile.openstreetmap.org/{z}/{x}/{y}.png",TILE_ALT="https://tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png";S.tileUrl=sg("bt_tileurl",TILE_OSM);if(/cartocdn/.test(S.tileUrl||"")){S.tileUrl=TILE_OSM;ss("bt_tileurl",S.tileUrl)}S.hd=0;S.route=null;S.navIdx=null;S.gps=sg("bt_gps",true);S.gpsErr="";
-function saveTrack(){if(S.tripId)ss("bt_cur_"+S.tripId,S.track.slice(-1500))}
-function finishTrack(){const t0=M.trips[S.tripId];if(t0&&S.track.length>10)ss(refKey(t0),S.track.slice(-1500))}
-function loadTracks(fresh){const t0=M.trips[S.tripId];S.ref=(t0&&sg(refKey(t0),null))||sg("bt_ref_"+S.tripId,null)||sg("bt_ref_mine:"+S.tripId,[]);S.track=fresh?[]:sg("bt_cur_"+S.tripId,[]);if(fresh)try{localStorage.removeItem("bt_cur_"+S.tripId)}catch(e){}}
+function thinT(a,m=2800){if(a.length<=m)return a;const k=Math.ceil(a.length/m),o=[];for(let i=0;i<a.length;i+=k)o.push(a[i]);if(o[o.length-1]!==a[a.length-1])o.push(a[a.length-1]);return o}
+function saveTrack(){if(S.tripId)ss("bt_cur_"+S.tripId,thinT(S.track))}
+function finishTrack(){const t0=M.trips[S.tripId];if(t0&&S.track.length>10)ss(refKey(t0),thinT(S.track))}
+function loadTracks(fresh){const t0=M.trips[S.tripId];S.ref=(t0&&sg(refKey(t0),null))||sg("bt_ref_"+S.tripId,null)||sg("bt_ref_mine:"+S.tripId,[]);if(S.ref&&S.ref.length===1500)S.ref=[];S.track=fresh?[]:sg("bt_cur_"+S.tripId,[]);if(fresh)try{localStorage.removeItem("bt_cur_"+S.tripId)}catch(e){}}
 let gpsId=null;
 function startGPS(){
  if(!navigator.geolocation){S.gpsErr="GPS indisponible";gpsStatus();return}
@@ -639,7 +640,7 @@ const osrmKey=t=>{let h=0;const q=actStops(t).map(x=>x[0]).join(",");for(let i=0
 function stopsRoute(t){const p=[];actStops(t).forEach(x=>{const ll=stopLL(x[0]);if(ll)p.push(ll)});return p.length>1?mkRoute(p,[],"arrêts"):null}
 function buildRoute(){
  const id=S.tripId;S.route=null;S.navIdx=null;S.lastNs=null;S.offN=0;S.apprDone=0;S.base=null;if(!id)return;const t=M.trips[id];if(!t)return;
- if(actStops(t).length<t.st.length){const d=sg(detKey(t),null);if(d&&d.length>=20){S.route=S.base=mkRoute(d,manFromTrack(d),"trace déviation");return}}
+ if(actStops(t).length<t.st.length){const d=sg(detKey(t),null);if(d&&d.length>=20&&d.length!==1500){S.route=S.base=mkRoute(d,manFromTrack(d),"trace déviation");return}}
  else if(S.ref&&S.ref.length>=20){S.route=S.base=mkRoute(S.ref,manFromTrack(S.ref),"trace");return}
  const o=sg(osrmKey(t),null)||sg("bt_osrm_"+id,null);if(o&&o.pts&&o.pts.length>1){S.route=S.base=mkRoute(o.pts,o.man,"en ligne");return}
  S.route=stopsRoute(t);
